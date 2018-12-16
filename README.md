@@ -307,6 +307,26 @@ Samples from lines of a file located in the resources folder. The filename must 
 ```
 {"name":"bmw-models", "class":"lookup", "resource":"bmw-models.tsv"}
 ```
+##### Enhancement
+OOTB it generates a json from the lookup file. The json has inly one element where key is header and value is the value of the attribute in the lookup file. But if you want a plain text value of the attribute from the lookup file without the json and header then add '"onlyCsvValue" : true'
+
+```
+{"name":"bmw-models", "class":"lookup", "resource":"bmw-models.tsv", "onlyCsvValue" : true}
+```
+
+Has been tested for csv file only.
+
+#### `vector`
+Gives array of double values. You can specify "min", "max" , "sd" (std deviation), "mean". 
+
+##### Changes
+Additionally you can specify "howMany" integer value to indicate number of elements. If howMany is equal to 1 then a non array single double is returned.
+
+```
+{"name" : "somename", "class" :  "vector",  "min" : 0, "max" : 1,  "howMany" : 1}
+```
+
+Has been tested for csv file only.
 
 #### `map`
 Samples from complex objects, fields of which are sampled according to a recursive schema you specify.

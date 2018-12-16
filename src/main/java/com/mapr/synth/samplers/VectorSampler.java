@@ -21,7 +21,9 @@ package com.mapr.synth.samplers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.TextNode;
 
 import java.io.IOException;
 import java.util.Random;
@@ -63,6 +65,8 @@ public class VectorSampler extends FieldSampler {
     private Random gen = new Random();
     private JsonNodeFactory nodeFactory = JsonNodeFactory.withExactBigDecimals(false);
     private Sampler sampler;
+
+    private int howMany = 10000;
 
     private interface Sampler {
         double eval();
@@ -112,7 +116,8 @@ public class VectorSampler extends FieldSampler {
                         }
                     };
                 }
-
+                //skh
+                length = constant(howMany);
                 initialized.set(true);
             }
         }
@@ -122,11 +127,17 @@ public class VectorSampler extends FieldSampler {
     public JsonNode sample() {
         init();
 
+        // skh
+        if(howMany == 1) {
+            return new DoubleNode((Math.random()));
+        }
         ArrayNode r = new ArrayNode(nodeFactory);
         int n = (int) length.sample().asDouble();
         for (int i = 0; i < n; i++) {
             r.add(sampler.eval());
         }
+
+
         return r;
     }
 
@@ -190,5 +201,15 @@ public class VectorSampler extends FieldSampler {
     @SuppressWarnings("unused")
     public void setSeed(int seed) {
         gen = new Random(seed);
+    }
+
+    @SuppressWarnings("unused")
+    public int getHowMany() {
+        return howMany;
+    }
+
+    @SuppressWarnings("unused")
+    public void setHowMany(int howMany) {
+        this.howMany = howMany;
     }
 }

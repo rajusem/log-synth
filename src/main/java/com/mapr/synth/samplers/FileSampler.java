@@ -21,10 +21,7 @@ package com.mapr.synth.samplers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.*;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -35,6 +32,7 @@ import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -47,6 +45,9 @@ public class FileSampler extends FieldSampler {
     private JsonNode data;
     private IntegerSampler index;
     private int skew = Integer.MAX_VALUE;
+
+    private Boolean onlyCsvValue =  Boolean.FALSE;
+    private List<String> csvData = new ArrayList<>();
 
     public FileSampler() {
     }
@@ -66,7 +67,12 @@ public class FileSampler extends FieldSampler {
     private void setupIndex() {
         index = new IntegerSampler();
         index.setMinAsInt(0);
-        index.setMaxasInt(data.size());
+        if(onlyCsvValue) {
+            index.setMaxasInt(csvData.size());
+        }
+        else {
+            index.setMaxasInt(data.size());
+        }
         if (skew != Integer.MAX_VALUE) {
             index.setSkew(skew);
         }
@@ -94,20 +100,25 @@ public class FileSampler extends FieldSampler {
             throw new IllegalArgumentException("Must have file with .csv, .tsv or .json suffix");
         }
 
-        List<String> names = Lists.newArrayList(splitter.split(lines.get(0)));
-        JsonNodeFactory nf = JsonNodeFactory.withExactBigDecimals(false);
-        ArrayNode localData = nf.arrayNode();
-        for (String line : lines.subList(1, lines.size())) {
-            ObjectNode r = nf.objectNode();
-            List<String> fields = Lists.newArrayList(splitter.split(line));
-            Preconditions.checkState(names.size() == fields.size(), "Wrong number of fields, expected ", names.size(), fields.size());
-            Iterator<String> ix = names.iterator();
-            for (String field : fields) {
-                r.put(ix.next(), field);
-            }
-            localData.add(r);
+        if(onlyCsvValue) {
+            csvData = lines;
         }
-        data = localData;
+        else {
+            List<String> names = Lists.newArrayList(splitter.split(lines.get(0)));
+            JsonNodeFactory nf = JsonNodeFactory.withExactBigDecimals(false);
+            ArrayNode localData = nf.arrayNode();
+            for (String line : lines.subList(1, lines.size())) {
+                ObjectNode r = nf.objectNode();
+                List<String> fields = Lists.newArrayList(splitter.split(line));
+                Preconditions.checkState(names.size() == fields.size(), "Wrong number of fields, expected ", names.size(), fields.size());
+                Iterator<String> ix = names.iterator();
+                for (String field : fields) {
+                    r.put(ix.next(), field);
+                }
+                localData.add(r);
+            }
+            data = localData;
+        }
     }
 
     private void readJsonData(BufferedReader input) throws IOException {
@@ -134,10 +145,24 @@ public class FileSampler extends FieldSampler {
         }
     }
 
+    public void setOnlyCsvValue(Boolean onlyCsvValue) {
+        this.onlyCsvValue = onlyCsvValue;
+    }
+
+    public Boolean getOnlyCsvValue() {
+        return onlyCsvValue;
+    }
+
     @Override
     public JsonNode sample() {
       synchronized (this) {
-        return data.get(index.sample().asInt());
+          if(onlyCsvValue) {
+            return new TextNode(csvData.get(index.sample().asInt()));
+          }
+          else {
+
+              return data.get(index.sample().asInt());
+          }
       }
     }
 }
